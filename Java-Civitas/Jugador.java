@@ -3,19 +3,19 @@ package civitas;
 import java.util.ArrayList;
 
 /**
- *  @brief Jugador
- * 
- * La clase jugador indica información referente al saldo del mismo, su nombre, sus propiedades, 
- * las casas maximas a tener en una casilla y por hotel, el numero maximo de hoteles, saldo inicial, 
- * casilla en la que se encuentra, si puede comprar, si esta en la carcel, cuanto cuesta salir de la carcel,
- * si tiene o no un salvoconducto para esta y el dinero recibido en cada paso por salida.
- * Un objeto de jugador es el que realiza las acciones en Civitas, quien compra, edifica, va a la
- * carcel etc...
- * 
+ * @brief Jugador
+ *
+ * La clase jugador indica información referente al saldo del mismo, su nombre,
+ * sus propiedades, las casas maximas a tener en una casilla y por hotel, el
+ * numero maximo de hoteles, saldo inicial, casilla en la que se encuentra, si
+ * puede comprar, si esta en la carcel, cuanto cuesta salir de la carcel, si
+ * tiene o no un salvoconducto para esta y el dinero recibido en cada paso por
+ * salida. Un objeto de jugador es el que realiza las acciones en Civitas, quien
+ * compra, edifica, va a la carcel etc...
+ *
  * @author Miguel Garcia Lopez
  * @date Octubre 2020
  */
-
 public class Jugador implements Comparable<Jugador> {
 
     final protected int CasasMax = 4;
@@ -65,18 +65,19 @@ public class Jugador implements Comparable<Jugador> {
      */
     int cantidadCasasHoteles() {
         int cantidad = 0;
-        
-        for(int i = 0; i < propiedades.size(); i++){
+
+        for (int i = 0; i < propiedades.size(); i++) {
             cantidad += (propiedades.get(i).getNumCasas() + propiedades.get(i).getNumHoteles());
         }
-        
+
         return cantidad;
     }
-    
+
     /**
      * @brief Compara los saldos de distintos jugadores
      * @param jug Jugador a comparar
-     * @return 0 si son iguales, 1 si es mayor el primero, -1 si es mayor el segundo
+     * @return 0 si son iguales, 1 si es mayor el primero, -1 si es mayor el
+     * segundo
      */
     @Override
     public int compareTo(Jugador jug) {
@@ -92,19 +93,100 @@ public class Jugador implements Comparable<Jugador> {
     }
 
     boolean comprar(TituloPropiedad propiedad) {
-        throw new UnsupportedOperationException("No implementado");
+        boolean result = false;
+
+        if (isEncarcelado()) {
+            return result;
+        }
+        if (getPuedeComprar()) {
+            float precio = propiedad.getPrecioCompra();
+
+            if (puedoGastar(precio)) {
+                result = propiedad.comprar(this);
+
+                if (result) {
+                    getPropiedades().add(propiedad);
+                    Diario.getInstance().ocurreEvento("El jugador " + getNombre() + " compra la propiedad " + propiedad.toString());
+                }
+
+                puedeComprar = false;
+            }
+        }
+
+        return result;
     }
 
     boolean construirCasa(int ip) {
-        throw new UnsupportedOperationException("No implementado");
+        boolean result = false;
+
+        if (isEncarcelado()) {
+            return result;
+        }
+
+        boolean existe = existeLaPropiedad(ip);
+
+        if (existe) {
+            TituloPropiedad propiedad = getPropiedades().get(ip);
+            boolean puedoEdificar = puedoEdificarCasa(propiedad);
+            float precio = propiedad.getPrecioEdificar();
+
+            if (puedoEdificarCasa(propiedad)) {
+                result = propiedad.construirCasa(this);
+                Diario.getInstance().ocurreEvento("El jugador " + getNombre() + " construye casa en propiedad " + getPropiedades().get(ip).getNombre());
+            }
+        }
+        return result;
     }
 
     boolean construirHotel(int ip) {
-        throw new UnsupportedOperationException("No implementado");
+        boolean result = false;
+
+        if (isEncarcelado()) {
+            return result;
+        }
+
+        if (existeLaPropiedad(ip)) {
+            TituloPropiedad propiedad = getPropiedades().get(ip);
+            boolean puedoEdificarHotel = puedoEdificarHotel(propiedad);
+            float precio = propiedad.getPrecioEdificar();
+
+            if (puedoEdificarHotel) {
+                result = propiedad.construirHotel(this);
+                propiedad.derruirCasas(getCasasPorHotel(), this);
+                Diario.getInstance().ocurreEvento("El jugador " + getNombre() + " construye hotel en propiedad " + getPropiedades().get(ip).getNombre());
+            }
+        }
+
+        return result;
     }
 
     /**
-     * @brief Comprueba si un jugador cumple los requerimientos necesarios para ser encarcelado
+     * 
+     * @param ip
+     * @return 
+     */
+    boolean hipotecar(int ip) {
+        boolean result = false;
+
+        if (isEncarcelado()) {
+            return result;
+        }
+
+        if (existeLaPropiedad(ip)) {
+            TituloPropiedad propiedad = getPropiedades().get(ip);
+            result = propiedad.hipotecar(this);
+        }
+
+        if (result) {
+            Diario.getInstance().ocurreEvento("El jugador " + getNombre() + " hipoteca " + getPropiedades().get(ip).getNombre());
+        }
+
+        return result;
+    }
+
+    /**
+     * @brief Comprueba si un jugador cumple los requerimientos necesarios para
+     * ser encarcelado
      * @return true si debe ser encarcelado, false de manera contraria
      */
     protected boolean debeSerEncarcelado() {
@@ -114,7 +196,7 @@ public class Jugador implements Comparable<Jugador> {
             if (!tieneSalvoconducto()) {
                 perderSalvoconducto();
                 encarcelar = false;
-                Diario.getInstance().ocurreEvento("Jugador " + nombre + "se libra de carcel");
+                Diario.getInstance().ocurreEvento("Jugador " + getNombre() + "se libra de carcel");
             } else {
                 encarcelar = true;
             }
@@ -123,7 +205,36 @@ public class Jugador implements Comparable<Jugador> {
     }
 
     /**
-     * @brief Comprueba si el jugador esta en bancarrota, es decir, si su saldo es cero
+     * @brief El jugador cancela la hipoteca de su propiedad pasada por parametro
+     * @param ip Identificador de la propiedad en cuestion
+     * @return true si se cancela, false en caso contrario
+     */
+    boolean cancelarHipoteca(int ip) {
+        boolean result = false;
+
+        if (isEncarcelado()) {
+            return result;
+        }
+        if (existeLaPropiedad(ip)) {
+            TituloPropiedad propiedad = getPropiedades().get(ip);
+            float cantidad = propiedad.getImporteCancelarHipoteca();
+            boolean puedoGastar = puedoGastar(cantidad);
+
+            if (puedoGastar) {
+                result = propiedad.cancelarHipoteca(this);
+            }
+        }
+
+        if (result) {
+            Diario.getInstance().ocurreEvento("El juador " + getNombre() + " cancela la hipotecada de " + getPropiedades().get(ip).getNombre());
+        }
+
+        return result;
+    }
+
+    /**
+     * @brief Comprueba si el jugador esta en bancarrota, es decir, si su saldo
+     * es cero
      * @return true si esta en bancarrota, false de manera contraria
      */
     boolean enBancarrota() {
@@ -137,7 +248,8 @@ public class Jugador implements Comparable<Jugador> {
     }
 
     /**
-     * @brief Si el jugador debe ser encarcelado este metodo realiza la accion de encarcelamiento
+     * @brief Si el jugador debe ser encarcelado este metodo realiza la accion
+     * de encarcelamiento
      * @param numCasillaCarcel Casilla donde se encuentra la carcel
      * @return true si ha sido encarcelado, false si no
      */
@@ -145,7 +257,7 @@ public class Jugador implements Comparable<Jugador> {
         if (debeSerEncarcelado()) {
             moverACasilla(numCasillaCarcel);
             encarcelado = true;
-            Diario.getInstance().ocurreEvento("Jugador " + nombre + "va a la carcel");
+            Diario.getInstance().ocurreEvento("Jugador " + getNombre() + "va a la carcel");
         }
 
         return encarcelado;
@@ -173,7 +285,7 @@ public class Jugador implements Comparable<Jugador> {
     int getCasasMax() {
         return CasasMax;
     }
-    
+
     /**
      * @brief Retorna numero de hoteles maximos a tener por casilla
      * @return numero de hoteles maximos
@@ -255,8 +367,8 @@ public class Jugador implements Comparable<Jugador> {
     }
 
     /**
-     * @brief Edita el saldo del jugador en funcion de la cantidad, que puede ser negativa 
-     * o positiva, en funcion de si debe o le dan dinero
+     * @brief Edita el saldo del jugador en funcion de la cantidad, que puede
+     * ser negativa o positiva, en funcion de si debe o le dan dinero
      * @param cantidad Cantidad de saldo modificado
      * @return true
      */
@@ -267,7 +379,8 @@ public class Jugador implements Comparable<Jugador> {
     }
 
     /**
-     * @brief Mueve al jugador a la casilla especificada, a no ser que este en la carcel
+     * @brief Mueve al jugador a la casilla especificada, a no ser que este en
+     * la carcel
      * @param numCasilla Casilla a la que se mueve el jugador
      * @return true si se mueve, false por el contrario
      */
@@ -279,15 +392,15 @@ public class Jugador implements Comparable<Jugador> {
         } else {
             numCasillaActual = numCasilla;
             puedeComprar = false;
-            Diario.getInstance().ocurreEvento("Jugador " + nombre + "se mueve a " + numCasillaActual);
+            Diario.getInstance().ocurreEvento("Jugador " + getNombre() + "se mueve a " + getNumCasillaActual());
         }
 
         return b;
     }
 
     /**
-     * @brief Se le otorga al jugador un salvoconducto, de tipo Sorpresa, a no ser que
-     * este encarcelado
+     * @brief Se le otorga al jugador un salvoconducto, de tipo Sorpresa, a no
+     * ser que este encarcelado
      * @param s Salvoconducto a otorgar
      * @return true si se le otorga, false si no
      */
@@ -347,8 +460,8 @@ public class Jugador implements Comparable<Jugador> {
     }
 
     /**
-     * @brief Realiza la accion de pasar por salida, modificando el saldo con el efectivo
-     * indicado por esa accion
+     * @brief Realiza la accion de pasar por salida, modificando el saldo con el
+     * efectivo indicado por esa accion
      * @return true
      */
     boolean pasaPorSalida() {
@@ -390,6 +503,39 @@ public class Jugador implements Comparable<Jugador> {
     }
 
     /**
+     * @brief El jugador sale de la carcel pagando (si puede)
+     * @return true si sale, false si no
+     */
+    boolean salirCarcelPagando() {
+        boolean b = false;
+
+        if (isEncarcelado() && puedeSalirCarcelPagando()) {
+            paga(getPrecioLibertad());
+            encarcelado = false;
+            Diario.getInstance().ocurreEvento("Jugador " + getNombre() + " paga salida de la carcel");
+            b = true;
+        }
+
+        return b;
+    }
+
+    /**
+     * @brief El jugador intenta salir de la carcel tirando
+     * @return true si sale, false si no
+     */
+    boolean salirCarcelTirando() {
+        boolean b = false;
+
+        if (Dado.getInstance().salgoDeLaCarcel()) {
+            encarcelado = false;
+            Diario.getInstance().ocurreEvento("Jugador " + getNombre() + " sale de la carcel tirando");
+            b = true;
+        }
+        
+        return b;
+    }
+
+    /**
      * @brief Comprueba si se puede edificar una casa
      * @param propiedad Propiedad sobre la que se desea edificar
      * @return true si es posible, false si no
@@ -398,7 +544,7 @@ public class Jugador implements Comparable<Jugador> {
         boolean b = false;
 
         if (propiedad.getNumCasas() < getCasasMax()) {
-            if (getSaldo() >= propiedad.getPrecioEdificar()) {
+            if (puedoGastar(propiedad.getPrecioEdificar())) {
                 b = true;
             }
         }
@@ -416,7 +562,7 @@ public class Jugador implements Comparable<Jugador> {
 
         if (propiedad.getNumHoteles() < getHotelesMax()) {
             if (propiedad.getNumCasas() == getCasasPorHotel()) {
-                if (getSaldo() >= propiedad.getPrecioEdificar()) {
+                if (puedoGastar(propiedad.getPrecioEdificar())) {
                     b = true;
                 }
             }
@@ -435,7 +581,9 @@ public class Jugador implements Comparable<Jugador> {
 
         if (isEncarcelado()) {
             b = false;
-        } else b = precio <= getSaldo();
+        } else {
+            b = precio <= getSaldo();
+        }
 
         return b;
     }
@@ -465,7 +613,7 @@ public class Jugador implements Comparable<Jugador> {
     boolean tieneAlgoQueGestionar() {
         boolean b = false;
 
-        if (propiedades.size() > 0) {
+        if (getPropiedades().size() > 0) {
             b = true;
         }
 
@@ -500,9 +648,9 @@ public class Jugador implements Comparable<Jugador> {
         } else {
 
             if (existeLaPropiedad(ip)) {
-                if (propiedades.get(ip).vender(this)) {
-                    propiedades.remove(ip);
-                    Diario.getInstance().ocurreEvento("Jugador " + getNombre() + " vende " + propiedades.get(ip).getNombre());
+                if (getPropiedades().get(ip).vender(this)) {
+                    getPropiedades().remove(ip);
+                    Diario.getInstance().ocurreEvento("Jugador " + getNombre() + " vende " + getPropiedades().get(ip).getNombre());
                     b = true;
                 }
             }

@@ -130,7 +130,7 @@ public class Jugador implements Comparable<Jugador> {
             boolean puedoEdificar = puedoEdificarCasa(propiedad);
             float precio = propiedad.getPrecioEdificar();
 
-            if (puedoEdificarCasa(propiedad)) {
+            if (puedoEdificar) {
                 result = propiedad.construirCasa(this);
                 Diario.getInstance().ocurreEvento("El jugador " + getNombre() + " construye casa en propiedad " + getPropiedades().get(ip).getNombre());
             }
@@ -226,7 +226,7 @@ public class Jugador implements Comparable<Jugador> {
         }
 
         if (result) {
-            Diario.getInstance().ocurreEvento("El juador " + getNombre() + " cancela la hipotecada de " + getPropiedades().get(ip).getNombre());
+            Diario.getInstance().ocurreEvento("El jugador " + getNombre() + " cancela la hipotecada de " + getPropiedades().get(ip).getNombre());
         }
 
         return result;

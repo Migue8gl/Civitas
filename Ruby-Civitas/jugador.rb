@@ -1,6 +1,6 @@
-# To change this license header, choose License Headers in Project Properties.
-# To change this template file, choose Tools | Templates
-# and open the template in the editor.
+#encoding:utf-8
+
+require_relative "titulo_propiedad"
 
 module Civitas
   class Jugador
@@ -228,7 +228,7 @@ module Civitas
         b = false
       else
         modificarSaldo(cantidad)
-        Diario.instance.ocurre_evento("Jugador " + @nombre.to_s + " recibe " + cantida.to_s)
+        Diario.instance.ocurre_evento("Jugador " + @nombre.to_s + " recibe " + cantidad.to_s)
       end
       
       return b
@@ -263,13 +263,128 @@ module Civitas
         if(existeLaPropiedad(ip))
           if(@propiedades[ip].vender(this))
             @propiedades.delete_at(ip)
-            Diario.instance.ocurre_evento("Jugador " + @nombre + " vende " + @propiedades[ip].nombre)
+            Diario.instance.ocurre_evento("Jugador " + @nombre.to_s + " vende " + @propiedades[ip].nombre.to_s)
             b = true
           end
         end
       end
       
       return b
+    end
+    
+    def cancelarHipoteca(ip)
+      result = false
+      
+      if(@encarcelado)
+        return result
+      end
+      
+      if(existeLaPropiedad(ip))
+        propiedad = TituloPropiedad.new
+        propiedad = @propiedades[ip]
+        cantidad = propiedad.getImporteCancelarHipoteca()
+        puedoGastar = puedoGastar(cantidad)
+        
+        if(puedoGastar)
+          result = propiedad.cancelarHipoteca(this)
+        end
+        
+        if(result)
+          Diario.instance.ocurre_evento("El jugador " + @nombre.to_s + " cancela hipotecada de " + @propiedades[ip].nombre.to_s)
+        end
+      end
+      
+      return result
+    end
+    
+    def comprar(propiedad)
+      result = false
+      
+      if(@encarcelado)
+        return result
+      end
+      
+      if(@puedeComprar)
+        precio = propiedad.precioCompra
+        
+        if(puedoGastar(precio))
+          result = propiedad.comprar(this)
+        end
+        
+        if(result)
+          @propiedades.push(propiedad)
+          Diario.instance.ocurre_evento("El jugador " + @nombre.to_s + " compra propiedad " + propiedad.toString())
+        end
+      end
+      
+      return result
+    end
+    
+    def construirHotel(ip)
+      result = false
+      
+      if(@encarcelado)
+        return result
+      end
+      
+      if(existeLaPropiedad(ip))
+        propiedad = TituloPropiedad.new
+        propiedad = @propiedades[ip]
+        puedoEdificarHotel = puedoEdificarHotel(propiedad)
+        precio = propiedad.precioEdificar
+        
+        if(puedoEdificarHotel)
+          result = propiedad.construirHotel(this)
+          propiedad.derruirCasas(CASAS_POR_HOTEL, this)
+          Diario.instance.ocurre_evento("El jugador " + @nombre.to_s + " construye hotel en " + @propiedades[ip].nombre.to_s)
+        end
+      end
+      
+      return result
+    end
+    
+    def hipotecar(ip)
+      result = true
+      
+      if(@encarcelado)
+        return result
+      end
+      
+      if(existeLaPropiedad(ip))
+        propiedad = TituloPropiedad.new
+        propiedad = @propiedades[ip]
+        result = propiedad.hipotecar(this)
+      end
+      
+      if(result)
+        Diario.instance.ocurre_evento("El jugador " + @nombre.to_s + " hipoteca " + @propiedades[ip].nombre.to_s)
+      end
+      
+      return result
+    end
+    
+    def construirCasa(ip)
+      result = false
+      
+      if(@encarcelado)
+        return result
+      end
+      
+      existe = existeLaPropiedad(ip)
+      
+      if(existe)
+        propiedad = TituloPropiedad.new
+        propiedad = @propiedades[ip]
+        puedoEdificar = puedoEdificar(propiedad)
+        precio = propiedad.precioEdificar
+        
+        if(puedoEdficiar)
+          result = propiedad.construirCasa(this)
+          Diario.instance.ocurre_evento("El jugador " + @nombre.to_s + " construye casa en " + @propiedades[ip].nombre.to_s)
+        end
+      end
+      
+      return result
     end
     
     def toString()

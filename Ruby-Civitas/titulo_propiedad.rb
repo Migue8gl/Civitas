@@ -1,17 +1,18 @@
-# To change this license header, choose License Headers in Project Properties.
-# To change this template file, choose Tools | Templates
-# and open the template in the editor.
+#encondig:utf-8
+
+require_relative "jugador"
 
 module Civitas
   class TituloPropiedad
     
     attr_accessor :nombre, :numCasas, :numHoteles, :precioCompra, :precioEdificar, :propietario, :hipotecado, :hipotecaBase
     
+    FACTOR_INTERESES_HIPOTECA = 1.1
+    
     def initialize(nomb, prec_alquiler, fac_reval, prec_hipo, prec_compra, prec_edif)
       @nombre = nomb
       @alquilerBase = prec_alquiler
       @factorRevalorizacion = fac_reval
-      @FACTOR_INTERESES_HIPOTECA = 1.1
       @hipotecaBase = prec_hipo
       @precioCompra = prec_compra
       @precioEdificar = prec_edif
@@ -46,17 +47,17 @@ module Civitas
     
     def getImporteCancelarHipoteca()
       cantidadRecibida = @hipotecaBase * (1 + (@numCasas * 0.5) + (@numHoteles * 2.5))
-      return cantidadRecibida * @FACTOR_INTERESES_HIPOTECA
+      return cantidadRecibida * FACTOR_INTERESES_HIPOTECA
     end
     
     def propietarioEncarcelado()
-      @encarcelado = false
+      encarcelado = false
       
       if(tienePropietario()) && (@propietario.isEncarcelado())
-        @encarcelado = true
+        encarcelado = true
       end
       
-      return @encarcelado
+      return encarcelado
     end
     
     def tramitarAlquiler(jug)
@@ -107,6 +108,67 @@ module Civitas
       end
       
       return vendido
+    end
+    
+    def cancelarHipoteca(jug)
+      result = false
+      
+      if(@hipotecado)
+        if(esEsteElPropietario(jug))
+          @propietario.paga(getImporteCancelarHipoteca())
+          @hipotecado = false
+          result = true
+        end
+      end
+      return result
+    end
+    
+    def comprar(jug)
+      result = false
+      
+      if(!tienePropietario())
+        @propietario = jug
+        result = true
+        @propietario.paga(@precioCompra)
+      end
+      
+      return result
+    end
+    
+    def construirHotel(jug)
+      result = false
+      
+      if(esEsteElPropietario(jug))
+        @propietario.paga(@precioEdificar)
+        @numCasas += 1
+        result = true
+      end
+      
+      return result
+    end
+    
+    def hipotecar(jug)
+      salida = false
+      
+      if(!@hipotecado) && (esEsteElPropietario(jug))
+        @propietario.recibe(@hipotecaBase)
+        @hipotecado = true
+        salida = true
+      end
+      
+      return salida
+    end
+    
+    def construirCasa(jug)
+      result = false
+      
+      if(esEsteElPropietario(jug))
+        @propietario.paga(@precioEdificar)
+        @numHoteles += 1
+        result = true
+      end
+      
+      return result
     end
     
     def toString()

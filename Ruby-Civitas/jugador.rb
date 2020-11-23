@@ -34,6 +34,10 @@ module Civitas
       end
     end
     
+    def <=>(otro)
+      return @saldo <=> otro.saldo
+    end
+    
     def cantidadCasasHoteles()
       return @propiedades.size;
     end
@@ -385,6 +389,30 @@ module Civitas
       end
       
       return result
+    end
+    
+    def salirCarcelTirando()
+      b = false
+      
+      if(Dado.instance.salgoDeLaCarcel())
+        @encarcelado = false
+        Diario.instance.ocurre_evento("Jugador " + @nombre.to_s + " sale de la carcel tirando")
+        b = true
+      end
+      
+      return b
+    end
+    
+    def salirCarcelPagando()
+      b = false
+      
+      if(@encarcelado) && (puedeSalirCarcelPagando())
+        @encarcelado = false
+        Diario.instance.ocurre_evento("Jugador " + @nombre.to_s + " sale de la carcel pagando")
+        b = true
+      end
+      
+      return b
     end
     
     def toString()

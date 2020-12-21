@@ -24,11 +24,3 @@ enum TipoSorpresa {
     PORJUGADOR,
     SALIRCARCEL
 }
-
-enum OperacionesJuego {
-    AVANZAR,
-    COMPRAR,
-    GESTIONAR,
-    SALIRCARCEL,
-    PASARTURNO
-}

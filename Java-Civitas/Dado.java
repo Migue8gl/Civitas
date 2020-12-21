@@ -8,7 +8,7 @@ public class Dado {
     private int ultimoResultado;
     private boolean debug;
     static final private Dado instance = new Dado();
-    static final private int SalidaCarcel = 5;
+    final private int SalidaCarcel = 5;
     
     private Dado() {
         ultimoResultado = -1;
@@ -43,7 +43,7 @@ public class Dado {
         return jug;
     }
     
-    void setDebug(boolean d) {
+    public void setDebug(boolean d) {
         debug = d;
         Diario.getInstance().ocurreEvento("Debug mode: " + debug);
     }

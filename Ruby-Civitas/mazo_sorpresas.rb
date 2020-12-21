@@ -1,60 +1,63 @@
 module Civitas
   class MazoSorpresas
-    
-    def initialize(d = false)
-      @debug = d
-      @ultimaSorpresa = Sorpresa.new
-      init()
-      if(@debug)
-        Diario.instance.ocurre_evento("Debug mode: " + @debug.to_s)
-      end
-    end
-    
-    def alMazo(s)
-      
-      if(!@barajada)
-        @sorpresas.push(s)
-      end
-    end
-    
-    def siguiente()
-      if((!@barajada || @usadas == @sorpresas.length) && !@debug)
-        @sorpresas.shuffle
-        @barajada = true
-        @usadas = 0
-        @usadas += 1
-        temp = @sorpresas[0]
-        @sorpresas.delete_at(0)
-        @sorpresas.push(temp)
-        @ultimaSorpresa = temp
-      end
-      
-      return @ultimaSorpresa
-    end
-    
-    def inhabilitarCartaEspecial(sorpresa)
-      if(@sorpresas.include?(sorpresa))
-        @sorpresas.delete(sorpresa)
-        @cartasEspeciales.push(sorpresa)
-        
-        Diario.instance.ocurre_evento("Carta aniadida a cartas especiales")
-      end
-    end
-    
-    def habilitarCartaEspecial(sorpresa)
-      if(@cartasEspeciales.include?(sorpresa))
-        @cartasEspeciales.delete(sorpresa)
-        @sorpresas.push(sorpresa)
-        Diario.instance.ocurre_evento("Carta aniadida a sorpresas")
-      end
-    end
-    
-    private
-    def init()
+    srand()
+    def initialize(*d)
       @sorpresas = []
-      @cartasEspeciales = []
       @barajada = false
+      if (d.size != 0)
+        @debug = d
+        if (@debug == true)
+          Diario.instance.ocurre_evento("Se ha creado el mazo de sorpresas")
+        end
+      else
+        @debug = false
+      end
       @usadas = 0
+      @cartas_especiales = []
+      @ultima_sorpresa
     end
-  end
+    
+    def al_mazo(s)
+      if (@barajada == false)
+        @sorpresas << s
+      end
+    end
+    
+    def siguiente
+      sorpresa = Sorpresa.new()
+      if (@barajada == false || @usadas == @sorpresas.size)
+        if (@debug == false)
+          for i in (0..@sorpresas.size)
+            ind = (rand() * sorpresas.size).to_i
+            sorpresatemp = @sorpresas[i]
+            @sorpresas[i] = sorpresas[ind]
+            @sorpresas[ind] = sorpresatemp
+          end
+          @usadas = 0
+          @barajada = true
+        end
+      end
+      @usadas = usadas + 1
+      sorpresa = @sorpresas.shift
+      @sorpresas.delete_at(0)
+      @sorpresas << sorpresa
+      return sorpresa
+    end
+    
+    def inhabilitar_carta_especial(sorpresa)
+      while (@sorpresas.rindex(sorpresa) != nil)
+        @sorpresas.delete(sorpresa)
+        @cartas_especiales << sorpresa
+        Diario.instance.ocurre_evento("Se ha quitado la carta " + sorpresa.to_s + " del mazo de sorpresas")
+      end
+    end
+    
+    def habilitar_carta_especial(sorpresa)
+      while (@cartas_especiales.rindex(sorpresa) != nil)
+        @cartas_especiales.delete(sorpresa)
+        @sorpresas << sorpresa
+        Diario.instance.ocurre_evento("Se ha aniadido la carta " + sorpresa.to_s + " al mazo de sorpresas")
+      end
+    end
+  end  
 end

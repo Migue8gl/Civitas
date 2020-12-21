@@ -5,37 +5,35 @@ require_relative "titulo_propiedad"
 module Civitas
   class Jugador
     
-    attr_accessor :nombre, :CASAS_MAX, :HOTELES_MAX, :CASAS_POR_HOTEL, :numCasillaActual, :PRECIO_POR_LIBERTAL, 
-      :PASO_POR_SALIDA, :propiedades, :puedeComprar, :saldo, :encarcelado
+    attr_accessor :nombre, :CASAS_MAX, :HOTELES_MAX, :CASAS_POR_HOTEL, :numCasillaActual, :PRECIO_POR_LIBERTAL,  :PASO_POR_SALIDA, :propiedades, :puedeComprar, :saldo, :encarcelado
     
-    CASAS_MAX = 4
-    HOTELES_MAX = 4
-    SALDO_INICIAL = 7500
-    CASAS_POR_HOTEL = 4
-    PASO_POR_SALIDA = 1000
-    PRECIO_POR_LIBERTAD = 200
+    @@CASAS_MAX = 4
+    @@HOTELES_MAX = 4
+    @@SALDO_INICIAL = 7500
+    @@CASAS_POR_HOTEL = 4
+    @@PASO_POR_SALIDA = 1000
+    @@PRECIO_POR_LIBERTAD = 200
     
-    def initialize(nomb, jug = nil)
-      if(jug != nil)
-        @nombre = nomb
-        @propiedades = []
-        @encarcelado = false
-        @numCasillaActual = 0
-        @puedeComprar = true
-        @saldo = SaldoInicial
-        @salvoconducto = Sorpresa.new  
-      else
-        @propiedades = jug.propiedades[0..jug.propiedades.size-1]
-        @nombre = jug.nombre
-        @encarcelado = jug.encarcelado
-        @numCasillaActual = jug.numCasillaActual
-        @puedeComprar = jug.puedeComprar
-        @saldo = jug.saldo
-      end
+    def puede_comprar
+      return @puedeComprar
     end
     
-    def <=>(otro)
-      return @saldo <=> otro.saldo
+    def tiene_algo_que_gestionar
+      tieneAlgoQueGestionar
+    end
+    
+    def initialize(nombre, encarcelado = false, numCasillaActual = 0, puedeComprar = false, saldo = @@SALDO_INICIAL, salvoconducto = nil, propiedades = Array.new)
+      @nombre = nombre
+      @encarcelado = encarcelado
+      @numCasillaActual = numCasillaActual
+      @puedeComprar = puedeComprar
+      @saldo = saldo
+      @salvoconducto = salvoconducto
+      @propiedades = propiedades
+    end
+    
+    def self.otro(otro)
+      new(otro.nombre, otro.encarcelado, otro.numCasillaActual, otro.puedeComprar, otro.saldo, otro.salvoconducto, otro.propiedades)
     end
     
     def cantidadCasasHoteles()
@@ -106,7 +104,7 @@ module Civitas
       else
         @numCasillaActual = numCasilla
         @puedeComprar = false
-        Diario.instance.ocurre_evento("Jugador " + @nombre.to_s + "se mueve a " + @numCasillaActual.to_s)
+        Diario.instance.ocurre_evento("Jugador " + @nombre.to_s + " se mueve a " + @numCasillaActual.to_s)
       end
       
       return b
@@ -125,7 +123,7 @@ module Civitas
     end
     
     def paga(cantidad)
-      return modificarSaldo(cantidad * -1)
+      return modificarSaldo((-1)*cantidad.to_i)
     end
     
     def pagaAlquiler(cantidad)
@@ -154,7 +152,7 @@ module Civitas
     
     def pasaPorSalida()
       modificarSaldo(PASO_POR_SALIDA)
-      Diario.instance.ocurre_evento("Jugador " + @nombre.to_s + "ha pasado por salida")
+      Diario.instance.ocurre_evento("Jugador " + @nombre.to_s + " ha pasado por salida")
       return true
     end
     
@@ -176,7 +174,7 @@ module Civitas
     def puedeSalirCarcelPagando()
       b = false
       
-      if(@saldo >= PRECIO_POR_LIBERTAD)
+      if(@saldo >= @@PRECIO_POR_LIBERTAD)
         b = true
       end
       
@@ -186,7 +184,7 @@ module Civitas
     def puedeEdificarCasa(propiedad)
       b = false
       
-      if(propiedad.numCasas < CASAS_MAX)
+      if(propiedad.numCasas < @@CASAS_MAX)
         if(@saldo >= propiedad.precioEdificar)
           b = true
         end
@@ -198,8 +196,8 @@ module Civitas
     def puedeEdificarHotel(propiedad)
       b = false
       
-      if(propiedad.numHoteles < HOTELES_MAX)
-        if(propiedad.numCasas == CASAS_POR_HOTEL)
+      if(propiedad.numHoteles < @@HOTELES_MAX)
+        if(propiedad.numCasas == @@CASAS_POR_HOTEL)
           if(@saldo >= propiedad.precioEdificar)
             b = true
           end
@@ -391,35 +389,8 @@ module Civitas
       return result
     end
     
-    def salirCarcelTirando()
-      b = false
-      
-      if(Dado.instance.salgoDeLaCarcel())
-        @encarcelado = false
-        Diario.instance.ocurre_evento("Jugador " + @nombre.to_s + " sale de la carcel tirando")
-        b = true
-      end
-      
-      return b
-    end
-    
-    def salirCarcelPagando()
-      b = false
-      
-      if(@encarcelado) && (puedeSalirCarcelPagando())
-        @encarcelado = false
-        Diario.instance.ocurre_evento("Jugador " + @nombre.to_s + " sale de la carcel pagando")
-        b = true
-      end
-      
-      return b
-    end
-    
-    def toString()
-      return "Jugador: " + @nombre + "\n"
-      + "Encarcelado?: " + @encarcelado + "\n"
-      + "Saldo: " + @saldo + "\n"
-      + "Casilla Actual: " + @numCasillaActual
+    def to_s
+      return "Jugador: " + @nombre.to_s + "\n " + "Encarcelado?: " + @encarcelado.to_s + "\n" + "Saldo: " + @saldo.to_s + "\n" + "Casilla Actual: " + @numCasillaActual.to_s
     end
   end
 end

@@ -16,7 +16,7 @@ module Civitas
       @hipotecaBase = prec_hipo
       @precioCompra = prec_compra
       @precioEdificar = prec_edif
-      @propietario = null
+      @propietario = nil
       @numCasas = 0
       @numHoteles = 0
       @hipotecado = false
@@ -172,16 +172,7 @@ module Civitas
     end
     
     def toString()
-      return "Nombre Propiedad: " + @nombre.to_s + "\n"
-      + "Precio Alquiler: " + getPrecioAlquiler().to_s + "\n"
-      + "Precio Compra: " + @precioCompra.to_s + "\n"
-      + "Precio Edificacion: " + @precioEdificar.to_s + "\n"
-      + "Precio Venta: " + getPrecioVenta().to_s + "\n"
-      + "Propietario: " + @propietario.nombre + "\n"
-      + "Hipoteca: " + @hipotecaBase.to_s + "\n"
-      + "Hipotecada: " + @hipotecado.to_s + "\n"
-      + "Numero Casas: " + @numCasas + "\n"
-      + "Numero Hoteles: " + @numHoteles;
+      return "Nombre Propiedad: " + @nombre.to_s + "\n" + "Precio Alquiler: " + getPrecioAlquiler().to_s + "\n" + "Precio Compra: " + @precioCompra.to_s + "\n" + "Precio Edificacion: " + @precioEdificar.to_s + "\n" + "Precio Venta: " + getPrecioVenta().to_s + "\n" + "Propietario: " + @propietario.nombre + "\n" + "Hipoteca: " + @hipotecaBase.to_s + "\n" + "Hipotecada: " + @hipotecado.to_s + "\n" + "Numero Casas: " + @numCasas + "\n" + "Numero Hoteles: " + @numHoteles;
     end
   end
 end
